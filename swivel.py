@@ -14,22 +14,22 @@ DISPLAY_NAME = win32api.EnumDisplayDevices(None, DISPLAY_NUM).DeviceName
 
 def orient_display(orientation):
     ds = win32api.EnumDisplaySettings(DISPLAY_NAME, -1)
-    if orientation == ds.DisplayOrientation:
-        return
     ds.PelsHeight, ds.PelsWidth = ds.PelsWidth, ds.PelsHeight
     ds.DisplayOrientation = not ds.DisplayOrientation
     win32api.ChangeDisplaySettingsEx(DISPLAY_NAME, ds)
+    return ds.DisplayOrientation
 
 ard = serial.Serial(ARDUINO_PORT)
+current_orientation = win32api.EnumDisplaySettings(DISPLAY_NAME, -1).DisplayOrientation
 while True:
     ard.flushInput()
     try:
         ard_bytes = ard.readline()
         y = float(ard_bytes.decode("utf-8"))
-        if y > 0.5:
-            orient_display(LANDSCAPE)
-        else:
-            orient_display(PORTRAIT)
+        if y > 0.5 and current_orientation != LANDSCAPE:
+            current_orientation = orient_display(LANDSCAPE)
+        elif y <= 0.5 and current_orientation != PORTRAIT:
+            current_orientation = orient_display(PORTRAIT)
     except:
         break
     time.sleep(SLEEP_TIME)
